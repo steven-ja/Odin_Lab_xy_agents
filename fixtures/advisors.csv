@@ -1,0 +1,4 @@
+radgivare_id,namn,roll,enhet,behorighet_hushall
+R02,Rådgivare Två,intern rådgivare,Stockholm,H003;H004;H006;H008;H010;H012;H017;H019
+R07,Rådgivare Sju,intern rådgivare,Göteborg,H001;H002;H005;H007;H009;H011;H013;H018;H020
+R09,Rådgivare Nio,franchisetagare,Franchise Norr,H014;H015;H016

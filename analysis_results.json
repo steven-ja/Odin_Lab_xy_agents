@@ -1,0 +1,777 @@
+{
+  "as_of": "2026-09-29",
+  "source_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+  "households": 20,
+  "holdings": 62,
+  "meetings": 11,
+  "advisors": 3,
+  "finding_counts": {
+    "ACCOUNT_RECONCILIATION": 2,
+    "CONDUCT_RISK_CONFLICT": 1,
+    "LIFE_EVENT": 1,
+    "LOWER_RISK_EXPRESSED": 3,
+    "MISSING_FEE": 1,
+    "MISSING_RISK_PROFILE": 1,
+    "PENSION_DATA_GAP": 4,
+    "PLANNED_EXPENDITURE": 1,
+    "PROMPT_INJECTION": 2,
+    "RETURN_ASSURANCE": 1,
+    "REVIEW_OVERDUE": 5,
+    "RISK_PROFILE_CONFLICT": 1,
+    "SUITABILITY_INCOMPLETE": 1
+  },
+  "reports": {
+    "H003": {
+      "household_id": "H003",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "2100000",
+        "isk_sek": "0",
+        "kf_sek": "4500000",
+        "total_sek": "6600000"
+      },
+      "holdings": {
+        "count": 2,
+        "valuation_sek": "4500000",
+        "annual_fee_known_sek": "28012.50",
+        "fee_known_exposure_sek": "4500000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.622500",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.5450"
+      },
+      "untrusted_sources_examined": 0,
+      "findings": [
+        {
+          "code": "MISSING_RISK_PROFILE",
+          "household_id": "H003",
+          "severity": "high",
+          "evidence": [
+            "households.csv:H003"
+          ],
+          "detail": "Recorded risk profile is missing"
+        }
+      ],
+      "write_actions": []
+    },
+    "H004": {
+      "household_id": "H004",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "offensiv",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "120000",
+        "isk_sek": "640000",
+        "kf_sek": "0",
+        "total_sek": "760000"
+      },
+      "holdings": {
+        "count": 2,
+        "valuation_sek": "640000",
+        "annual_fee_known_sek": "3968.00",
+        "fee_known_exposure_sek": "640000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.6200",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.8528"
+      },
+      "untrusted_sources_examined": 0,
+      "findings": [],
+      "write_actions": []
+    },
+    "H006": {
+      "household_id": "H006",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "forsiktig",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "95000",
+        "isk_sek": "0",
+        "kf_sek": "3100000",
+        "total_sek": "3195000"
+      },
+      "holdings": {
+        "count": 3,
+        "valuation_sek": "3100000",
+        "annual_fee_known_sek": "12663.50",
+        "fee_known_exposure_sek": "3100000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.408500",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.3598"
+      },
+      "untrusted_sources_examined": 0,
+      "findings": [
+        {
+          "code": "REVIEW_OVERDUE",
+          "household_id": "H006",
+          "severity": "warning",
+          "evidence": [
+            "households.csv:H006"
+          ],
+          "detail": "Review due date precedes case as-of date"
+        }
+      ],
+      "write_actions": []
+    },
+    "H008": {
+      "household_id": "H008",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "balanserad",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "430000",
+        "isk_sek": "720000",
+        "kf_sek": "610000",
+        "total_sek": "1760000"
+      },
+      "holdings": {
+        "count": 4,
+        "valuation_sek": "1330000",
+        "annual_fee_known_sek": "2617.25",
+        "fee_known_exposure_sek": "1330000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.1967857142857142857142857143",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.4512513426423200859291084854"
+      },
+      "untrusted_sources_examined": 0,
+      "findings": [],
+      "write_actions": []
+    },
+    "H010": {
+      "household_id": "H010",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "balanserad",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "780000",
+        "isk_sek": "2300000",
+        "kf_sek": "1200000",
+        "total_sek": "4280000"
+      },
+      "holdings": {
+        "count": 5,
+        "valuation_sek": "3500000",
+        "annual_fee_known_sek": "15367.50",
+        "fee_known_exposure_sek": "3500000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.4390714285714285714285714286",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.2402564897959183673469387756"
+      },
+      "untrusted_sources_examined": 1,
+      "findings": [
+        {
+          "code": "REVIEW_OVERDUE",
+          "household_id": "H010",
+          "severity": "warning",
+          "evidence": [
+            "households.csv:H010"
+          ],
+          "detail": "Review due date precedes case as-of date"
+        }
+      ],
+      "write_actions": []
+    },
+    "H012": {
+      "household_id": "H012",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "offensiv",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "200000",
+        "isk_sek": "980000",
+        "kf_sek": "400000",
+        "total_sek": "1580000"
+      },
+      "holdings": {
+        "count": 5,
+        "valuation_sek": "1380000",
+        "annual_fee_known_sek": "3233.00",
+        "fee_known_exposure_sek": "1380000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.2342753623188405797101449275",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.3343541272841839949590422180"
+      },
+      "untrusted_sources_examined": 2,
+      "findings": [
+        {
+          "code": "LOWER_RISK_EXPRESSED",
+          "household_id": "H012",
+          "severity": "high",
+          "evidence": [
+            "T2_H012_2026-09-24.txt:00:00:24"
+          ],
+          "detail": "Client expressed caution / desire for lower risk"
+        },
+        {
+          "code": "PLANNED_EXPENDITURE",
+          "household_id": "H012",
+          "severity": "info",
+          "evidence": [
+            "T2_H012_2026-09-24.txt:00:00:58"
+          ],
+          "detail": "Client discusses future renovation expenditure; verify before use"
+        },
+        {
+          "code": "RETURN_ASSURANCE",
+          "household_id": "H012",
+          "severity": "critical",
+          "evidence": [
+            "T2_H012_2026-09-24.txt:00:01:22"
+          ],
+          "detail": "Advisor describes future returns as near-guaranteed"
+        },
+        {
+          "code": "LOWER_RISK_EXPRESSED",
+          "household_id": "H012",
+          "severity": "high",
+          "evidence": [
+            "T2_H012_2026-09-24.txt:00:01:36"
+          ],
+          "detail": "Client expressed caution / desire for lower risk"
+        },
+        {
+          "code": "RISK_PROFILE_CONFLICT",
+          "household_id": "H012",
+          "severity": "high",
+          "evidence": [
+            "households.csv:H012",
+            "T2_H012_2026-09-24.txt"
+          ],
+          "detail": "Recorded aggressive risk profile conflicts with client statement"
+        },
+        {
+          "code": "CONDUCT_RISK_CONFLICT",
+          "household_id": "H012",
+          "severity": "critical",
+          "evidence": [
+            "T2_H012_2026-09-24.txt"
+          ],
+          "detail": "Return assurance conflicts with expressed client caution"
+        }
+      ],
+      "write_actions": []
+    },
+    "H017": {
+      "household_id": "H017",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "forsiktig",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "640000",
+        "isk_sek": "0",
+        "kf_sek": "2800000",
+        "total_sek": "3440000"
+      },
+      "holdings": {
+        "count": 2,
+        "valuation_sek": "2800000",
+        "annual_fee_known_sek": "21448.00",
+        "fee_known_exposure_sek": "2800000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.76600",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.7888"
+      },
+      "untrusted_sources_examined": 0,
+      "findings": [],
+      "write_actions": []
+    },
+    "H019": {
+      "household_id": "H019",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "forsiktig",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "1850000",
+        "isk_sek": "400000",
+        "kf_sek": "0",
+        "total_sek": "2250000"
+      },
+      "holdings": {
+        "count": 2,
+        "valuation_sek": "400000",
+        "annual_fee_known_sek": "730.00",
+        "fee_known_exposure_sek": "400000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.182500",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.5450"
+      },
+      "untrusted_sources_examined": 1,
+      "findings": [],
+      "write_actions": []
+    },
+    "H001": {
+      "household_id": "H001",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "balanserad",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "850000",
+        "isk_sek": "1200000",
+        "kf_sek": "0",
+        "total_sek": "2050000"
+      },
+      "holdings": {
+        "count": 2,
+        "valuation_sek": "1200000",
+        "annual_fee_known_sek": "2016.00",
+        "fee_known_exposure_sek": "1200000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.16800",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.9232"
+      },
+      "untrusted_sources_examined": 3,
+      "findings": [
+        {
+          "code": "REVIEW_OVERDUE",
+          "household_id": "H001",
+          "severity": "warning",
+          "evidence": [
+            "households.csv:H001"
+          ],
+          "detail": "Review due date precedes case as-of date"
+        },
+        {
+          "code": "LOWER_RISK_EXPRESSED",
+          "household_id": "H001",
+          "severity": "high",
+          "evidence": [
+            "T1_H001_2026-09-28.txt:00:01:18"
+          ],
+          "detail": "Client expressed caution / desire for lower risk"
+        }
+      ],
+      "write_actions": []
+    },
+    "H002": {
+      "household_id": "H002",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "forsiktig",
+      "suitability_complete": false,
+      "assets": {
+        "cash_sek": "40000",
+        "isk_sek": "310000",
+        "kf_sek": "95000",
+        "total_sek": "445000"
+      },
+      "holdings": {
+        "count": 4,
+        "valuation_sek": "405000",
+        "annual_fee_known_sek": "2908.85",
+        "fee_known_exposure_sek": "405000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.7182345679012345679012345679",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.4883088553574150281969212010"
+      },
+      "untrusted_sources_examined": 1,
+      "findings": [
+        {
+          "code": "SUITABILITY_INCOMPLETE",
+          "household_id": "H002",
+          "severity": "high",
+          "evidence": [
+            "households.csv:H002"
+          ],
+          "detail": "Suitability marked incomplete"
+        },
+        {
+          "code": "REVIEW_OVERDUE",
+          "household_id": "H002",
+          "severity": "warning",
+          "evidence": [
+            "households.csv:H002"
+          ],
+          "detail": "Review due date precedes case as-of date"
+        },
+        {
+          "code": "PENSION_DATA_GAP",
+          "household_id": "H002",
+          "severity": "info",
+          "evidence": [
+            "households.csv:H002"
+          ],
+          "detail": "Occupational pension not confirmed"
+        }
+      ],
+      "write_actions": []
+    },
+    "H005": {
+      "household_id": "H005",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "balanserad",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "310000",
+        "isk_sek": "880000",
+        "kf_sek": "250000",
+        "total_sek": "1440000"
+      },
+      "holdings": {
+        "count": 5,
+        "valuation_sek": "1130000",
+        "annual_fee_known_sek": "9267.80",
+        "fee_known_exposure_sek": "1130000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.8201592920353982300884955752",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.6059546714699663246926149268"
+      },
+      "untrusted_sources_examined": 1,
+      "findings": [
+        {
+          "code": "PENSION_DATA_GAP",
+          "household_id": "H005",
+          "severity": "info",
+          "evidence": [
+            "households.csv:H005"
+          ],
+          "detail": "Occupational pension not confirmed"
+        }
+      ],
+      "write_actions": []
+    },
+    "H007": {
+      "household_id": "H007",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "offensiv",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "60000",
+        "isk_sek": "1450000",
+        "kf_sek": "0",
+        "total_sek": "1510000"
+      },
+      "holdings": {
+        "count": 2,
+        "valuation_sek": "1300000",
+        "annual_fee_known_sek": "7406.75",
+        "fee_known_exposure_sek": "1300000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.5697500",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.5094795857988165680473372780"
+      },
+      "untrusted_sources_examined": 0,
+      "findings": [
+        {
+          "code": "ACCOUNT_RECONCILIATION",
+          "household_id": "H007",
+          "severity": "warning",
+          "evidence": [
+            "households.csv:H007",
+            "holdings.csv:H007"
+          ],
+          "detail": "ISK: household=1450000, holdings=1300000"
+        }
+      ],
+      "write_actions": []
+    },
+    "H009": {
+      "household_id": "H009",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "offensiv",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "25000",
+        "isk_sek": "190000",
+        "kf_sek": "0",
+        "total_sek": "215000"
+      },
+      "holdings": {
+        "count": 2,
+        "valuation_sek": "190000",
+        "annual_fee_known_sek": "247.95",
+        "fee_known_exposure_sek": "165300",
+        "fee_unknown_exposure_sek": "24700",
+        "known_exposure_weighted_fee_pct": "0.1500",
+        "full_fee_coverage": false,
+        "holding_row_hhi": "0.7738"
+      },
+      "untrusted_sources_examined": 0,
+      "findings": [
+        {
+          "code": "MISSING_FEE",
+          "household_id": "H009",
+          "severity": "warning",
+          "evidence": [
+            "holdings.csv:H009:SE0000000045"
+          ],
+          "detail": "Fee coverage incomplete; never assume zero"
+        },
+        {
+          "code": "PENSION_DATA_GAP",
+          "household_id": "H009",
+          "severity": "info",
+          "evidence": [
+            "households.csv:H009"
+          ],
+          "detail": "Occupational pension not confirmed"
+        }
+      ],
+      "write_actions": []
+    },
+    "H011": {
+      "household_id": "H011",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "balanserad",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "150000",
+        "isk_sek": "560000",
+        "kf_sek": "0",
+        "total_sek": "710000"
+      },
+      "holdings": {
+        "count": 3,
+        "valuation_sek": "896000",
+        "annual_fee_known_sek": "8736.00",
+        "fee_known_exposure_sek": "896000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.97500",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.343750"
+      },
+      "untrusted_sources_examined": 0,
+      "findings": [
+        {
+          "code": "ACCOUNT_RECONCILIATION",
+          "household_id": "H011",
+          "severity": "warning",
+          "evidence": [
+            "households.csv:H011",
+            "holdings.csv:H011"
+          ],
+          "detail": "ISK: household=560000, holdings=896000"
+        }
+      ],
+      "write_actions": []
+    },
+    "H013": {
+      "household_id": "H013",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "balanserad",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "70000",
+        "isk_sek": "350000",
+        "kf_sek": "0",
+        "total_sek": "420000"
+      },
+      "holdings": {
+        "count": 2,
+        "valuation_sek": "350000",
+        "annual_fee_known_sek": "4011.00",
+        "fee_known_exposure_sek": "350000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "1.14600",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.7312"
+      },
+      "untrusted_sources_examined": 0,
+      "findings": [],
+      "write_actions": []
+    },
+    "H018": {
+      "household_id": "H018",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "balanserad",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "180000",
+        "isk_sek": "1320000",
+        "kf_sek": "0",
+        "total_sek": "1500000"
+      },
+      "holdings": {
+        "count": 3,
+        "valuation_sek": "1320000",
+        "annual_fee_known_sek": "10269.60",
+        "fee_known_exposure_sek": "1320000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.77800",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.4598"
+      },
+      "untrusted_sources_examined": 2,
+      "findings": [
+        {
+          "code": "LIFE_EVENT",
+          "household_id": "H018",
+          "severity": "info",
+          "evidence": [
+            "T3_H018_2026-09-22.txt:00:00:27"
+          ],
+          "detail": "Changed family circumstances / household income"
+        },
+        {
+          "code": "PROMPT_INJECTION",
+          "household_id": "H018",
+          "severity": "critical",
+          "evidence": [
+            "T3_H018_2026-09-22.txt:00:01:12"
+          ],
+          "detail": "Untrusted transcript instruction quarantined"
+        }
+      ],
+      "write_actions": []
+    },
+    "H020": {
+      "household_id": "H020",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "balanserad",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "340000",
+        "isk_sek": "900000",
+        "kf_sek": "300000",
+        "total_sek": "1540000"
+      },
+      "holdings": {
+        "count": 5,
+        "valuation_sek": "1200000",
+        "annual_fee_known_sek": "7126.50",
+        "fee_known_exposure_sek": "1200000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.59387500",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.35736250"
+      },
+      "untrusted_sources_examined": 1,
+      "findings": [],
+      "write_actions": []
+    },
+    "H014": {
+      "household_id": "H014",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "balanserad",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "510000",
+        "isk_sek": "1100000",
+        "kf_sek": "0",
+        "total_sek": "1610000"
+      },
+      "holdings": {
+        "count": 2,
+        "valuation_sek": "1100000",
+        "annual_fee_known_sek": "9240.00",
+        "fee_known_exposure_sek": "1100000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "0.8400",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.9232"
+      },
+      "untrusted_sources_examined": 1,
+      "findings": [],
+      "write_actions": []
+    },
+    "H015": {
+      "household_id": "H015",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "offensiv",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "30000",
+        "isk_sek": "120000",
+        "kf_sek": "0",
+        "total_sek": "150000"
+      },
+      "holdings": {
+        "count": 3,
+        "valuation_sek": "120000",
+        "annual_fee_known_sek": "1309.20",
+        "fee_known_exposure_sek": "120000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "1.09100",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.3974"
+      },
+      "untrusted_sources_examined": 0,
+      "findings": [
+        {
+          "code": "REVIEW_OVERDUE",
+          "household_id": "H015",
+          "severity": "warning",
+          "evidence": [
+            "households.csv:H015"
+          ],
+          "detail": "Review due date precedes case as-of date"
+        },
+        {
+          "code": "PENSION_DATA_GAP",
+          "household_id": "H015",
+          "severity": "info",
+          "evidence": [
+            "households.csv:H015"
+          ],
+          "detail": "Occupational pension not confirmed"
+        }
+      ],
+      "write_actions": []
+    },
+    "H016": {
+      "household_id": "H016",
+      "as_of": "2026-09-29",
+      "data_sha256": "f8bd4e0c4e398931e2d92813b9b5ce78d82389e72835969e7e314497d36adfb7",
+      "recorded_risk_profile": "balanserad",
+      "suitability_complete": true,
+      "assets": {
+        "cash_sek": "260000",
+        "isk_sek": "1750000",
+        "kf_sek": "900000",
+        "total_sek": "2910000"
+      },
+      "holdings": {
+        "count": 4,
+        "valuation_sek": "2650000",
+        "annual_fee_known_sek": "27072.50",
+        "fee_known_exposure_sek": "2650000",
+        "fee_unknown_exposure_sek": "0",
+        "known_exposure_weighted_fee_pct": "1.021603773584905660377358491",
+        "full_fee_coverage": true,
+        "holding_row_hhi": "0.3595389818440726237095051620"
+      },
+      "untrusted_sources_examined": 1,
+      "findings": [
+        {
+          "code": "PROMPT_INJECTION",
+          "household_id": "H016",
+          "severity": "critical",
+          "evidence": [
+            "meetings.csv:M107"
+          ],
+          "detail": "Untrusted CRM instruction quarantined"
+        }
+      ],
+      "write_actions": []
+    }
+  }
+}
