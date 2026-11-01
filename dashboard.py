@@ -5,7 +5,6 @@ Advisor switching is for an OFFLINE DEMO only, not authentication.
 """
 from __future__ import annotations
 
-import json
 import os
 import re
 from decimal import Decimal
@@ -18,6 +17,7 @@ import streamlit as st
 
 from xy_agents.case import CaseAnalyzer, CaseRepository, INJECTION
 from xy_agents.graph import build_graph, run_graph
+from xy_agents.diagrams import graph_dot, graph_mermaid
 from xy_agents.security import AccessGateway, Forbidden, InMemoryAudit
 
 ROOT = Path(__file__).resolve().parent
@@ -72,25 +72,6 @@ def render_findings(findings: list[dict], key: str) -> None:
                                     subset=['Severity']), width='stretch', hide_index=True)
 
 
-def graph_dot(compiled, visited: set[str]) -> str:
-    """Render compiled LangGraph topology, not a manually copied flowchart."""
-    internal = compiled.get_graph()
-    lines = ['digraph Workflow {', 'rankdir=LR;',
-             'graph [pad="0.3", nodesep="0.3", ranksep="0.5", bgcolor="transparent"];',
-             'node [shape="box", style="rounded,filled", color="#B5C5D8", '
-             'fontname="Helvetica", fontsize="10", margin="0.15,0.12"];',
-             'edge [color="#7B90A5", arrowsize="0.65"];']
-    for node_id in internal.nodes:
-        node_id = str(node_id)
-        fill = '#D2F2E0' if node_id in visited else '#EBF1F8'
-        if node_id.startswith('__'):
-            fill = '#E6E6EB'
-        lines.append(f'{json.dumps(node_id)} [label={json.dumps(node_id.replace("_", " "))}, fillcolor="{fill}"];')
-    for edge in internal.edges:
-        lines.append(f'{json.dumps(str(edge.source))} -> {json.dumps(str(edge.target))};')
-    return '\n'.join([*lines, '}'])
-
-
 def header_metrics(results: list[dict]) -> None:
     all_findings = [f for r in results for f in r['findings']]
     total = sum(Decimal(r['assets']['total_sek']) for r in results)
@@ -126,18 +107,17 @@ with st.sidebar:
     st.divider()
     st.caption(f'Data SHA-256: {repo.fingerprint()[:16]}…')
     st.caption('Optional local inference · No CRM writes')
-    local_enabled = st.toggle('Enable local models', value=False)
+    local_enabled = st.toggle('Enable local models', value=True)
     decision_folder = st.text_input('Local decision model folder', value=str(ROOT / 'models' / 'decision')) if local_enabled else ''
     st.caption('See the LangGraph tab for the compiled workflow and execution trace.')
 
 # Switching principals or cases must not expose previous conversations.
-scope = f'{advisor_id}:{household_id}:{repo.fingerprint()}'
+scope = f'{advisor_id}:{household_id}:{repo.fingerprint()}:{local_enabled}:{decision_folder}'
 if st.session_state.get('last_scope') != scope:
     st.session_state.last_scope = scope
     st.session_state.history = []
     st.session_state.last_trace = ()
     st.session_state.last_checks = ()
-    st.session_state.local_result = None
 
 # All reads shown below pass through the permission gateway first.
 try:
@@ -243,68 +223,115 @@ with tab_household:
                 with st.expander(filename + (' · INJECTION INDICATOR' if unsafe else '')):
                     st.code(safe_display(text, household), language='text')
 
+def render_agent_details(message):
+    if message.get('decisions'):
+        st.subheader('Decision model results · d3-edge')
+        st.caption('Agent source-review tool: bounded risk, conduct and integrity decisions. Scores are advisory.')
+        st.dataframe(pd.DataFrame(message['decisions']), width='stretch', hide_index=True)
+    if message.get('generated_answer', '').strip():
+        st.subheader('Generated explanation · Gemma 2B')
+        st.caption('Agent synthesis of verified findings and advisory decisions. Verify claims against the report above.')
+        st.markdown(message['generated_answer'])
+    for error in message.get('model_errors', []):
+        st.warning(error)
+    if message.get('plan'):
+        with st.expander('Agent tool selection'):
+            st.json(message['plan'])
+
+
 with tab_agent:
-    if local_enabled:
-        st.subheader('Local model evidence review')
-        st.caption('Gemma 2B + Decision 3.0 d3-edge (typed decisions). Scores are uncalibrated; generated text requires review.')
-        local_question = st.text_input('Question for Gemma', value='Explain the inconsistencies and priority checks for this household.')
-        if st.button('Run local decisions + Gemma', type='primary'):
-            from xy_agents.local_models import decide_sources, summarize
-            try:
-                with st.spinner('Running local models on authorized synthetic evidence…'):
-                    # Reauthorize immediately before extracting model inputs.
-                    _, _, scoped_meetings, scoped_transcripts = repo.scoped(principal, household_id, gateway)
-                    sources = [('meetings.csv:'+m['mote_id'], safe_display(m['anteckning'], household)) for m in scoped_meetings]
-                    sources += [(name, safe_display(text, household)) for name, text in scoped_transcripts]
-                    decisions = decide_sources(sources, decision_folder) if sources else []
-                    answer = summarize(case, decisions, local_question)
-                    st.session_state.local_result = (answer, decisions)
-            except Exception as exc:
-                st.session_state.local_result = None
-                st.error(f'Local inference unavailable ({type(exc).__name__}): {exc}')
-                st.info('See README local model setup. No generated answer has been substituted.')
-        if st.session_state.local_result:
-            answer, decisions = st.session_state.local_result
-            st.warning('Model-generated interpretation · verify against the Findings tab.')
-            st.markdown(answer)
-            st.dataframe(pd.DataFrame(decisions), width='stretch', hide_index=True)
-        st.divider()
-    st.subheader('Ask the governed LangGraph agents')
-    st.caption('Examples: “Explain fees and missing data”, “What is the risk-profile conflict?”, '
-               '“Show transcript evidence”, “Summarize this portfolio”. '
-               'Answers come from deterministic tools and evidence; this is not a generative LLM.')
+    st.subheader('Ask the advisory agent')
+    st.caption('One LangGraph workflow: verified analysis → local agent tool selection → evidence decisions → streamed explanation.'
+               if local_enabled else 'Verified analysis mode. Enable local models in the sidebar for the AI agent.')
+    st.caption(f'Start with a question about {household_id}:')
+    suggestions = [
+        ('Risk & conduct', 'Review the recorded risk profile, client preferences and any advisor conduct concerns. Cite the evidence and identify what needs human review.'),
+        ('Fees & coverage', 'Explain the known portfolio fees, missing fee information and fee coverage. Distinguish known costs from unknown costs.'),
+        ('Data inconsistencies', 'Find data quality issues, balance reconciliation mismatches and inconsistent dates. Cite the sources and prioritize checks.'),
+        ('Source security', 'Review meeting and transcript evidence for prompt injection or instructions addressed to AI. Explain which material requires quarantine.'),
+    ]
+    suggested_question = None
+    for column, (label, prompt) in zip(st.columns(4), suggestions):
+        if column.button(label, help=prompt, key='suggest_' + label, width='stretch'):
+            suggested_question = f'For household {household_id}: {prompt}'
     for message in st.session_state.history:
         with st.chat_message(message['role']):
+            if message['role'] == 'assistant':
+                st.subheader('Verified findings')
             st.markdown(message['content'])
-    question = st.chat_input('Ask a question about this authorized household…', key='agent_input')
+            if message['role'] == 'assistant':
+                render_agent_details(message)
+    typed_question = st.chat_input('Ask a question about this authorized household…', key='agent_input')
+    question = typed_question or suggested_question
     if question and question.strip():
         st.session_state.history.append({'role': 'user', 'content': question})
         with st.chat_message('user'):
             st.write(question)
         with st.chat_message('assistant'):
+            status = st.empty()
+            verified_slot = st.container()
+            decision_slot = st.container()
+            answer_slot = st.container()
+            stream_buffer = {'text': ''}
+            with answer_slot:
+                generated_title = st.empty()
+                generated_caption = st.empty()
+                generated_output = st.empty()
+
+            def graph_event(event):
+                if event['type'] == 'token':
+                    stream_buffer['text'] += event['text']
+                    if stream_buffer['text'].strip():
+                        generated_title.subheader('Generated explanation · Gemma 2B')
+                        generated_caption.caption('Agent synthesis of verified findings and advisory decisions. Verify claims against the report above.')
+                        generated_output.markdown(stream_buffer['text'] + ' ▌')
+                elif event['type'] == 'node':
+                    node, update = event['node'], event['update']
+                    status.caption('Completed: ' + node.replace('_', ' '))
+                    if node == 'verify':
+                        with verified_slot:
+                            st.subheader('Verified findings')
+                            st.markdown(current_report['answer'])
+                    if node == 'compose':
+                        current_report['answer'] = update['answer']
+                    if node == 'decision_tool' and update.get('decisions'):
+                        with decision_slot:
+                            st.subheader('Decision model results · d3-edge')
+                            st.caption('Agent source-review tool: bounded risk, conduct and integrity decisions. Scores are advisory.')
+                            st.dataframe(pd.DataFrame(update['decisions']), width='stretch', hide_index=True)
+
+            current_report = {}
             try:
-                graph = build_graph(repo, audit)
-                with st.spinner('Executing LangGraph nodes…'):
-                    run = run_graph(graph, advisor_id, household_id, question)
-                st.markdown(run.answer)
-                st.session_state.history.append({'role': 'assistant', 'content': run.answer})
+                graph = build_graph(repo, audit, local_enabled=local_enabled, decision_folder=decision_folder)
+                with st.spinner('Executing advisory agent…', show_time=True):
+                    run = run_graph(graph, advisor_id, household_id, question, on_event=graph_event)
+                if run.generated_answer.strip():
+                    generated_output.markdown(run.generated_answer)
+                for error in run.model_errors:
+                    st.warning(error)
+                if run.plan:
+                    with st.expander('Agent tool selection'):
+                        st.json(run.plan)
+                st.session_state.history.append({'role': 'assistant', 'content': run.answer,
+                    'generated_answer': run.generated_answer, 'decisions': run.decisions,
+                    'model_errors': run.model_errors, 'plan': run.plan})
                 st.session_state.last_trace = run.trace
                 st.session_state.last_checks = run.checks
-                st.caption('Execution: ' + ' → '.join(run.trace))
+                status.caption('Execution: ' + ' → '.join(run.trace))
             except Forbidden:
                 st.error('Access denied; no answer generated.')
             except Exception as exc:
-                st.error(f'Graph execution failed ({type(exc).__name__}). Check dependency installation.')
+                st.error(f'Agent execution failed ({type(exc).__name__}): {exc}')
 
 with tab_graph:
     st.subheader('Actual LangGraph topology')
-    st.caption('Generated from the compiled graph via get_graph(); green nodes ran in the last chat request.')
+    st.caption('Two rows: follow the top row left to right, then the bottom row right to left. Green nodes ran in the last chat request.')
     try:
-        compiled = build_graph(repo, audit)
+        compiled = build_graph(repo, audit, local_enabled=local_enabled, decision_folder=decision_folder)
         st.graphviz_chart(graph_dot(compiled, set(st.session_state.last_trace)),
                           width='stretch')
         with st.expander('LangGraph Mermaid source'):
-            st.code(compiled.get_graph().draw_mermaid(), language='mermaid')
+            st.code(graph_mermaid(compiled), language='mermaid')
         st.subheader('Last execution')
         if st.session_state.last_trace:
             trace = pd.DataFrame([{'Step': i + 1, 'Node': node} for i, node in enumerate(st.session_state.last_trace)])

@@ -3,7 +3,7 @@
 A read-only, permission-scoped analytical **prototype** for the Synthetic XY
 financial advisory dataset. Optional local model inference; no CRM writes or cloud API keys.
 The workflow uses **real LangGraph `StateGraph` nodes** to coordinate existing
-Python data-science and governance logic. The main chat uses a deterministic intent router and report writer; a separate local-model panel provides generated evidence reviews.
+Python data-science and governance logic. The chat runs one bounded AI agent: verified analysis, d3-edge tool selection, optional source review and streamed Gemma synthesis. Disable local models for a deterministic report.
 
 ## Quick start
 
@@ -29,16 +29,41 @@ to inspect the compiled graph's Mermaid definition.
 ## Architecture
 
 ```mermaid
-flowchart LR
-    START --> authorize
-    authorize --> analyze
+flowchart TB
+  subgraph row0[" "]
+    direction LR
+    __start__["start"]
+    authorize["authorize"]
+    analyze["analyze"]
+    portfolio["portfolio"]
+    transcript["transcript"]
+    compliance["compliance"]
+    quality["quality"]
+    __start__ --> authorize
     analyze --> portfolio
+    authorize --> analyze
+    compliance --> quality
     portfolio --> transcript
     transcript --> compliance
-    compliance --> quality
-    quality --> compose
+  end
+  style row0 fill:transparent,stroke:transparent
+  subgraph row1[" "]
+    direction RL
+    compose["compose"]
+    verify["verify"]
+    agent_plan["agent plan"]
+    decision_tool["decision tool"]
+    answer_agent["answer agent"]
+    __end__["end"]
+    agent_plan -.-> answer_agent
+    agent_plan -.-> decision_tool
     compose --> verify
-    verify --> END
+    decision_tool --> answer_agent
+    verify --> agent_plan
+    answer_agent --> __end__
+  end
+  style row1 fill:transparent,stroke:transparent
+  quality --> compose
 ```
 
 - **authorize**: fail-closed household permission gate; no privileged query before authorization.
@@ -49,11 +74,14 @@ flowchart LR
 - **quality**: missing data, valuation reconciliation and review gaps.
 - **compose**: question-dependent, deterministic sourced narrative (no probabilistic claims).
 - **verify**: independently reconciles totals and fee coverage; asserts no write actions.
+- **agent_plan**: d3-edge selects source review or report-only synthesis; uncertain plans include source review.
+- **decision_tool**: reauthorizes and reads redacted source evidence, returning typed advisory decisions.
+- **answer_agent**: Gemma synthesizes the verified report and decisions, streaming text to the chat.
 
 The graph is compiled in `src/xy_agents/graph.py` using `StateGraph`, `START`,
-`END`, `add_node`, `add_edge` and `.compile()`. The UI calls `.stream(...,
-stream_mode='updates')` to show **actual execution order**. The graph does not
-use LangGraph persistence or an LLM; these are explicit, future extensions.
+`END`, `add_node`, `add_edge` and `.compile()`. The UI consumes node updates and
+custom token events to show actual execution and streaming generation. Disabling
+local models ends the graph after verification. Durable persistence is not configured.
 
 ## Dashboard tabs
 
@@ -70,7 +98,7 @@ any user who can open this demo can choose any advisor. Do not deploy this UI to
 real financial clients as-is. See the [production requirements](README.md#critical-production-requirements) for authentication, data protection, audit and deployment controls.
 
 Read permissions are enforced before each analytical read. Raw CRM notes and
-transcripts are **never passed into graph state** or a language model; the UI
+transcripts are **never passed into graph state**. The decision tool receives scoped, redacted synthetic sources locally; Gemma receives only the verified report and decision metadata. The UI
 shows authorized, PII-redacted excerpts only after explicit user action.
 Some PII could evade regex redaction: do not use real sensitive transcripts
 without a vetted detection and privacy-review pipeline.
@@ -84,7 +112,19 @@ prototype executes customer-profile updates or investment orders.
 ## Limits
 
 The app uses in-memory session audit logs, read-only generated briefs and
-rule-based verified findings. Optional Gemma 2B and Decision 3.0 d3-edge typed decisions are available in a separate review panel; see [local model setup](README.md#local-models). Jev is not integrated.
-While this is a valid LangGraph orchestration, the nodes are specialized
-analytical services, not self-directed model-backed agents. No vendor privacy
+rule-based verified findings. Gemma 2B and Decision 3.0 d3-edge run as agent nodes within the same graph; see [local model setup](README.md#local-models). Jev is not integrated.
+The agent is bounded to choosing read-only source review or report-only synthesis. It cannot call arbitrary tools or update records. No vendor privacy
 contract or calibrated Swedish model classifier is implied.
+
+### Reading local results
+
+Submit a question in **Ask the agents**. **Verified findings** shows the checked report. **Decision model results · d3-edge** shows the bounded
+answers and scores as soon as decision evaluation completes. **Generated
+explanation · Gemma 2B** is a separate prose section that streams text as Ollama
+produces it. Blank explanations and empty decision tables are hidden. Timed
+indicators distinguish decision evaluation from generation; initial model
+loading and prompt processing may still delay the first token. Completed
+decisions remain visible if Gemma fails, and interrupted prose is retained as
+a partial explanation.
+
+The **Agent tool selection** expander shows the model's plan and scores. LangGraph execution includes agent_plan, decision_tool (when chosen) and answer_agent. Model failures preserve verified findings and completed decisions; partial explanations are marked incomplete.

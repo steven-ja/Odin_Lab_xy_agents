@@ -75,7 +75,7 @@ uv run python -m xy_agents --data fixtures --advisor R07 --household H018
 
 **Limitations:** Verified reports use offline rules; optional local models provide unverified interpretation. Swedish pattern rules do not guarantee detection of paraphrases. Jev remains an unimplemented adapter until its API and data-processing terms are verified. The CLI `--advisor` option is a demonstration of authorization logic, not authentication; a production API must obtain advisor identity from a verified authentication token, enforce database row-level security, and use durable audit storage. Account reconciliation uses reported balances and holdings as recorded, which may have different valuation dates. No suitability decision, investment recommendation, or client update is automated.
 
-## Source reanalysis and fixes
+## Source data analysis and fixes
 
 Reanalyzed 20 households, 62 holdings, 11 meetings and 3 transcripts against
 **2026-09-29**, the dataset date. Original fixtures are preserved.
@@ -106,7 +106,8 @@ Streamlit rendering with advisor switching.
 
 ## Local models
 
-Gemma 2B generates explanations through local Ollama. **Decision 3.0 d3-edge**
+1. Gemma 2B (or bigger local / cloud models) generates explanations through local Ollama.
+2. **Decision 3.0 d3-edge**
 (`vllm-sr/d3-edge`, 0.59B, Apache-2.0) replaces the previous MiniLM topic
 classifier. It is a dedicated decision model with an answer-code readout:
 options are scored without generating text. This is a local alternative with
@@ -137,8 +138,8 @@ If Ollama already runs, no second server is needed. Launch:
 uv run python -m streamlit run dashboard.py
 ```
 
-Enable **Local models**, then **Run local decisions + Gemma**. Three explicit
-choice questions are asked about each complete, redacted, authorized source:
+With **Local models** enabled (the default), ask in **Ask the agents**. LangGraph verifies the report, then d3-edge chooses between source review and a report-only answer. Three explicit
+choice questions are asked about each complete, redacted, authorized source when the agent selects source review:
 
 - Does the client request reduced risk, explicitly keep their preference, or is neither established?
 - Does the advisor give a future-return assurance requiring conduct review?
@@ -153,7 +154,7 @@ be wrong. Validate Swedish/domain performance before relying on decisions.
 Neither decision outputs nor Gemma prose override deterministic findings or
 permit record updates. Gemma sees the verified report plus advisory decisions,
 never raw source instructions. No cloud inference or automatic downloads occur
-at runtime. The LangGraph chat remains deterministic.
+at runtime. The local models now run inside LangGraph as a bounded, read-only AI agent; disabling local models selects the deterministic workflow.
 
 References: [d3-edge model card and runtime](https://huggingface.co/vllm-sr/d3-edge),
 [Ollama API](https://github.com/ollama/ollama/blob/main/docs/api.md).
@@ -173,3 +174,12 @@ financial-domain accuracy. Deterministic risk and conduct findings remain
 visible regardless of these outputs. Full-document CPU inference is slow with
 the PyTorch fallback kernels; GPU benchmark timings in the model card do not
 apply to this setup.
+
+### Integrated agent smoke evaluation
+
+[agent_model_smoke.json](agent_model_smoke.json) records a real local LangGraph
+run on H009's missing-fee question. d3-edge selected the report-only tool path
+(score 0.953), Gemma emitted 359 streamed chunks through LangGraph custom events,
+and the run completed without model errors. The graph trace includes agent_plan
+and answer_agent; source-review requests additionally execute decision_tool.
+This is an integration check, not a domain-accuracy benchmark.

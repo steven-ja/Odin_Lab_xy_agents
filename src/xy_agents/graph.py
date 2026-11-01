@@ -1,15 +1,15 @@
 """Read-only, access-scoped LangGraph workflow for the Synthetic XY case.
 
-Graph state contains only pseudonymous identifiers and validated analytical
+Graph state contains pseudonymous identifiers, model metadata and analytical
 results. Neither untrusted source text nor customer PII enter graph state.
-Model-backed steps can be added behind an independently reviewed boundary.
+Local agent nodes choose bounded read tools and stream generated explanations. Model metadata is advisory and cannot override verified findings.
 """
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, TypedDict
+from typing import Any, TypedDict, Callable
 
 from .case import CaseAnalyzer, CaseRepository
 from .security import AccessGateway, AuditSink
@@ -28,12 +28,17 @@ class AgentState(TypedDict, total=False):
     answer: str
     verified: bool
     verification_checks: list[str]
+    agent_action: str
+    agent_plan: dict[str, Any]
+    decisions: list[dict[str, Any]]
+    generated_answer: str
+    model_errors: list[str]
 
 
 QUALITY = frozenset({
     'ACCOUNT_RECONCILIATION', 'MISSING_FEE', 'MISSING_RISK_PROFILE',
     'SUITABILITY_INCOMPLETE', 'REVIEW_OVERDUE', 'PENSION_DATA_GAP',
-    'FUTURE_VALUATION', 'ISIN_FORMAT',
+    'FUTURE_VALUATION', 'ISIN_FORMAT', 'FUTURE_LAST_MEETING', 'STALE_LAST_MEETING', 'FUTURE_MEETING',
 })
 CONDUCT = frozenset({
     'RETURN_ASSURANCE', 'RISK_PROFILE_CONFLICT', 'CONDUCT_RISK_CONFLICT',
@@ -79,10 +84,53 @@ def evidence_list(findings: list[dict[str, Any]], limit: int = 12) -> list[str]:
 class AdvisorGraphNodes:
     """Node implementations depend on a repository and an audit policy, not UI."""
 
-    def __init__(self, repository: CaseRepository, audit: AuditSink):
+    def __init__(self, repository: CaseRepository, audit: AuditSink, decision_folder: str = ''):
         self.repo = repository
         self.gateway = AccessGateway(audit)
         self.analyzer = CaseAnalyzer(repository, self.gateway)
+        self.decision_folder = decision_folder
+
+    def agent_plan(self, state: AgentState) -> dict[str, Any]:
+        """Bounded local agent: choose an allowed read tool from the user's task."""
+        from .local_models import plan_review
+        try:
+            plan = plan_review(state['question'], state['case'], self.decision_folder)
+            return {'agent_action': plan['action'], 'agent_plan': plan, 'model_errors': []}
+        except Exception as exc:
+            return {'agent_action': 'source_review', 'agent_plan': {'action': 'source_review', 'fallback': True},
+                    'model_errors': [f'Agent planning unavailable: {type(exc).__name__}: {exc}']}
+
+    def decision_tool(self, state: AgentState) -> dict[str, Any]:
+        from .local_models import decide_sources, redact_source
+        principal = self.repo.principal(state['advisor_id'])
+        # Authorization failures must propagate, never become model-error fallbacks.
+        household, _, meetings, transcripts = self.repo.scoped(principal, state['household_id'], self.gateway)
+        sources = [('meetings.csv:'+m['mote_id'], redact_source(m['anteckning'], household)) for m in meetings]
+        sources += [(name, redact_source(text, household)) for name, text in transcripts]
+        try:
+            return {'decisions': decide_sources(sources, self.decision_folder) if sources else []}
+        except Exception as exc:
+            return {'decisions': [], 'model_errors': state.get('model_errors', []) +
+                    [f'Decision tool unavailable: {type(exc).__name__}: {exc}']}
+
+    def answer_agent(self, state: AgentState) -> dict[str, Any]:
+        from .local_models import stream_summary
+        from langgraph.config import get_stream_writer
+        # Reauthorize the model boundary even when the planner skipped source review.
+        principal = self.repo.principal(state['advisor_id'])
+        self.gateway.require(principal, state['household_id'], 'agent_answer')
+        if not state.get('verified'):
+            raise ValueError('Agent requires a verified report')
+        writer = get_stream_writer()
+        answer = ''
+        try:
+            for chunk in stream_summary(state['case'], state.get('decisions', []), state['question']):
+                answer += chunk
+                writer({'type': 'token', 'text': chunk})
+            return {'generated_answer': answer}
+        except Exception as exc:
+            return {'generated_answer': answer, 'model_errors': state.get('model_errors', []) +
+                    [f'Explanation incomplete: {type(exc).__name__}: {exc}']}
 
     def authorize(self, state: AgentState) -> dict[str, Any]:
         principal = self.repo.principal(state['advisor_id'])
@@ -190,14 +238,15 @@ class AdvisorGraphNodes:
         return {'verified': True, 'verification_checks': checks}
 
 
-def build_graph(repository: CaseRepository, audit: AuditSink):
+def build_graph(repository: CaseRepository, audit: AuditSink, *, local_enabled: bool = False,
+                decision_folder: str = ''):
     """Create a real compiled LangGraph (requires the optional dashboard extra)."""
     try:
         from langgraph.graph import END, START, StateGraph
     except ImportError as exc:
-        raise RuntimeError('Install the dashboard extra: pip install -e ".[dashboard]"') from exc
+        raise RuntimeError('Install the dashboard extra: uv sync --extra dashboard') from exc
 
-    nodes = AdvisorGraphNodes(repository, audit)
+    nodes = AdvisorGraphNodes(repository, audit, decision_folder)
     builder = StateGraph(AgentState)
     for name in ('authorize', 'analyze', 'portfolio', 'transcript', 'compliance',
                  'quality', 'compose', 'verify'):
@@ -208,7 +257,16 @@ def build_graph(repository: CaseRepository, audit: AuditSink):
         ('analyze', 'portfolio', 'transcript', 'compliance', 'quality', 'compose', 'verify'),
     ):
         builder.add_edge(first, second)
-    builder.add_edge('verify', END)
+    if local_enabled:
+        for name in ('agent_plan', 'decision_tool', 'answer_agent'):
+            builder.add_node(name, getattr(nodes, name))
+        builder.add_edge('verify', 'agent_plan')
+        builder.add_conditional_edges('agent_plan', lambda s: s['agent_action'],
+                                      {'source_review': 'decision_tool', 'report_only': 'answer_agent'})
+        builder.add_edge('decision_tool', 'answer_agent')
+        builder.add_edge('answer_agent', END)
+    else:
+        builder.add_edge('verify', END)
     return builder.compile()
 
 
@@ -218,18 +276,34 @@ class GraphRun:
     report: dict[str, Any]
     trace: tuple[str, ...]
     checks: tuple[str, ...]
+    decisions: tuple[dict, ...] = ()
+    generated_answer: str = ''
+    model_errors: tuple[str, ...] = ()
+    plan: dict | None = None
 
 
-def run_graph(graph: Any, advisor: str, household: str, question: str) -> GraphRun:
+def run_graph(graph: Any, advisor: str, household: str, question: str,
+              on_event: Callable[[dict], None] | None = None) -> GraphRun:
     """Stream actual node updates and expose only node names in the execution trace."""
     data: AgentState = {'advisor_id': advisor, 'household_id': household,
                         'question': question[:2000]}
     observed: list[str] = []
-    for event in graph.stream(data, stream_mode='updates'):
+    mode = ['updates', 'custom'] if on_event else 'updates'
+    for item in graph.stream(data, stream_mode=mode):
+        if on_event:
+            kind, event = item
+            if kind == 'custom':
+                on_event(event)
+                continue
+        else:
+            event = item
         for node, update in event.items():
             observed.append(node)
             data.update(update)
+            if on_event:
+                on_event({'type': 'node', 'node': node, 'update': update})
     if not data.get('verified') or not data.get('answer'):
         raise RuntimeError('Graph did not produce a verified answer')
     return GraphRun(data['answer'], data['case'], tuple(observed),
-                    tuple(data['verification_checks']))
+                    tuple(data['verification_checks']), tuple(data.get('decisions', [])),
+                    data.get('generated_answer', ''), tuple(data.get('model_errors', [])), data.get('agent_plan'))
