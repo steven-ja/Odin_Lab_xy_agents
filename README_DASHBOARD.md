@@ -1,10 +1,9 @@
 # XY Advisory Intelligence — Streamlit + LangGraph
 
 A read-only, permission-scoped analytical **prototype** for the Synthetic XY
-financial advisory dataset. No external model calls, CRM writes or API keys.
+financial advisory dataset. Optional local model inference; no CRM writes or cloud API keys.
 The workflow uses **real LangGraph `StateGraph` nodes** to coordinate existing
-Python data-science and governance logic. A deterministic intent router and
-report writer are used instead of pretending this demo is a generative LLM.
+Python data-science and governance logic. The main chat uses a deterministic intent router and report writer; a separate local-model panel provides generated evidence reviews.
 
 ## Quick start
 
@@ -85,7 +84,7 @@ prototype executes customer-profile updates or investment orders.
 ## Limits
 
 The app uses in-memory session audit logs, read-only generated briefs and
-rule-based classification. Jev and LLM backends are **not yet integrated**.
+rule-based verified findings. Optional Gemma 2B and Decision 3.0 d3-edge typed decisions are available in a separate review panel; see [local model setup](README.md#local-models). Jev is not integrated.
 While this is a valid LangGraph orchestration, the nodes are specialized
 analytical services, not self-directed model-backed agents. No vendor privacy
 contract or calibrated Swedish model classifier is implied.

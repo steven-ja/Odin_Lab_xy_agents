@@ -1,0 +1,12 @@
+{
+  "classifier": [
+    {
+      "source": "T2_H012_2026-09-24.txt:00:00:24:line1",
+      "label": "uncertain — human review",
+      "candidate": "return assurance",
+      "score": 0.6438798308372498
+    }
+  ],
+  "gemma_household": "H012",
+  "gemma": "The report identifies a conflict between the client's expressed desire for lower risk and the recorded aggressive risk profile. This conflict is highlighted by the \"RISK_PROFILE_CONFLICT\" finding, which states that the client's expressed caution regarding risk conflicts with the recorded aggressive risk profile.  \n\nAdditionally, the report highlights a \"CONDUCT_RISK_CONFLICT\" finding, stating that the advisor's description of near-guaranteed returns conflicts with the client's expressed caution. This suggests a potential disconnect between the advisor's actions and the client's expressed risk tolerance. \n"
+}

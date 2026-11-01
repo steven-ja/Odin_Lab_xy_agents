@@ -1,16 +1,19 @@
 """Streamlit UI for the governed Synthetic XY / LangGraph prototype.
 
-Run from the repository root: streamlit run dashboard.py
+Run from the repository root: uv run streamlit run dashboard.py
 Advisor switching is for an OFFLINE DEMO only, not authentication.
 """
 from __future__ import annotations
 
 import json
+import os
 import re
+from decimal import Decimal
 from collections import Counter
 from pathlib import Path
 
 import pandas as pd
+import altair as alt
 import streamlit as st
 
 from xy_agents.case import CaseAnalyzer, CaseRepository, INJECTION
@@ -20,13 +23,26 @@ from xy_agents.security import AccessGateway, Forbidden, InMemoryAudit
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / 'fixtures'
 SEVERITY = ['critical', 'high', 'warning', 'info']
+COLORS = ['#e5484d', '#f07832', '#eab548', '#4598e6']
+
+
+def attention(report):
+    return next((s for s in SEVERITY if any(f['severity'] == s for f in report['findings'])), 'clear')
 
 st.set_page_config(page_title='XY | Governed Advisory Intelligence', page_icon='🛡️',
                    layout='wide', initial_sidebar_state='expanded')
+st.markdown('''<style>
+.block-container {padding-top:2rem; max-width:1550px}
+[data-testid="stMetric"] {border:1px solid #71809644; border-radius:16px;
+padding:18px; background:linear-gradient(120deg,#4598e612,#ab7aff12)}
+[data-testid="stMetricLabel"] {text-transform:uppercase;letter-spacing:.08em;font-size:.75rem}
+[data-testid="stSidebar"] {border-right:1px solid #71809633}
+.stTabs [data-baseweb="tab"] {padding:14px 20px;font-weight:600}
+</style>''', unsafe_allow_html=True)
 
 
 @st.cache_resource(show_spinner='Validating synthetic case data…')
-def repository(data_path: str) -> CaseRepository:
+def repository(data_path: str, source_version: tuple) -> CaseRepository:
     return CaseRepository(Path(data_path))
 
 
@@ -51,7 +67,9 @@ def render_findings(findings: list[dict], key: str) -> None:
     } for f in findings])
     choices = st.multiselect('Filter severity', SEVERITY, default=SEVERITY, key=key)
     filtered = df[df['Severity'].isin(choices)]
-    st.dataframe(filtered, width='stretch', hide_index=True)
+    color_map = dict(zip(SEVERITY, COLORS))
+    st.dataframe(filtered.style.map(lambda value: f'color: {color_map.get(value, "inherit")}; font-weight:700',
+                                    subset=['Severity']), width='stretch', hide_index=True)
 
 
 def graph_dot(compiled, visited: set[str]) -> str:
@@ -75,7 +93,7 @@ def graph_dot(compiled, visited: set[str]) -> str:
 
 def header_metrics(results: list[dict]) -> None:
     all_findings = [f for r in results for f in r['findings']]
-    total = sum(int(r['assets']['total_sek']) for r in results)
+    total = sum(Decimal(r['assets']['total_sek']) for r in results)
     a, b, c, d = st.columns(4)
     a.metric('Accessible households', len(results))
     b.metric('Reported total assets', f'{total:,.0f} SEK')
@@ -84,12 +102,13 @@ def header_metrics(results: list[dict]) -> None:
 
 
 st.title('XY · Governed Advisory Intelligence')
-st.caption('Synthetic data · 29 Sep 2026 · Read-only · Deterministic analytics orchestrated with LangGraph')
+st.caption('ADVISOR WORKSPACE / Synthetic data · 29 Sep 2026 · Read-only')
 st.warning('**Offline demonstration:** selecting an advisor ID is NOT authentication. Do not deploy '
            'with real client data without SSO, server-side row-level access controls and persistent audit logging.',
            icon='⚠️')
 
-repo = repository(str(DATA))
+source_version = tuple((p.name, p.stat().st_mtime_ns, p.stat().st_size) for p in sorted(DATA.iterdir()) if p.suffix in {'.csv', '.txt'})
+repo = repository(str(DATA), source_version)
 if 'audit' not in st.session_state:
     st.session_state.audit = InMemoryAudit()
 audit = st.session_state.audit
@@ -106,16 +125,19 @@ with st.sidebar:
     st.caption(f'Visible households: {len(allowed)} of {len(repo.households)}')
     st.divider()
     st.caption(f'Data SHA-256: {repo.fingerprint()[:16]}…')
-    st.caption('No model/API calls; no CRM writes.')
+    st.caption('Optional local inference · No CRM writes')
+    local_enabled = st.toggle('Enable local models', value=False)
+    decision_folder = st.text_input('Local decision model folder', value=str(ROOT / 'models' / 'decision')) if local_enabled else ''
     st.caption('See the LangGraph tab for the compiled workflow and execution trace.')
 
 # Switching principals or cases must not expose previous conversations.
-scope = f'{advisor_id}:{household_id}'
+scope = f'{advisor_id}:{household_id}:{repo.fingerprint()}'
 if st.session_state.get('last_scope') != scope:
     st.session_state.last_scope = scope
     st.session_state.history = []
     st.session_state.last_trace = ()
     st.session_state.last_checks = ()
+    st.session_state.local_result = None
 
 # All reads shown below pass through the permission gateway first.
 try:
@@ -128,6 +150,15 @@ except Forbidden:
 # Aggregate view uses the same authorized per-household analysis pathway.
 results = [analyzer.analyze(principal, hid) for hid in allowed]
 header_metrics(results)
+level = attention(case)
+accent = dict(zip(SEVERITY + ['clear'], COLORS + ['#2bb79a']))[level]
+st.markdown(f'''<div style="border-left:6px solid {accent};background:{accent}18;
+padding:20px 24px;border-radius:12px;margin:20px 0">
+<span style="color:{accent};font-weight:800;letter-spacing:.12em">{level.upper()} ATTENTION</span>
+<h2 style="margin:4px 0">{household_id} · Selected household</h2>
+Recorded profile: {case['recorded_risk_profile'] or 'missing'} · {len(case['findings'])} findings
+<br><small>Attention reflects evidence and data quality; it is separate from investment risk tolerance.</small>
+</div>''', unsafe_allow_html=True)
 
 tab_overview, tab_household, tab_agent, tab_graph, tab_audit = st.tabs(
     ['Overview', 'Household & sources', 'Ask the agents', 'LangGraph execution', 'Audit & governance'])
@@ -138,19 +169,41 @@ with tab_overview:
         'Household': r['household_id'], 'Assets (SEK)': float(r['assets']['total_sek']),
         'Holdings (SEK)': float(r['holdings']['valuation_sek']),
         'Findings': len(r['findings']), 'Critical': sum(f['severity'] == 'critical' for f in r['findings']),
-        'Risk': r['recorded_risk_profile'] or 'missing',
+        'Risk': r['recorded_risk_profile'] or 'missing', 'Attention': attention(r),
+        'Selected': r['household_id'] == household_id,
     } for r in results]
     overview = pd.DataFrame(rows)
     st.dataframe(overview, width='stretch', hide_index=True)
     left, right = st.columns(2)
     with left:
         st.markdown('**Reported assets by household**')
-        st.bar_chart(overview.set_index('Household')['Assets (SEK)'])
+        chart = alt.Chart(overview).mark_bar(cornerRadiusEnd=5).encode(
+            y=alt.Y('Household:N', sort='-x'), x=alt.X('Assets (SEK):Q', title='Reported assets · SEK'),
+            color=alt.Color('Attention:N', scale=alt.Scale(domain=SEVERITY+['clear'], range=COLORS+['#2bb79a'])),
+            opacity=alt.condition(alt.datum.Selected, alt.value(1), alt.value(.55)),
+            tooltip=['Household', 'Assets (SEK)', 'Risk', 'Attention', 'Findings'])
+        st.altair_chart(chart.properties(height=360), width='stretch')
+        st.caption('Colour = highest finding severity. Selected household is highlighted.')
     with right:
         st.markdown('**Finding severity distribution**')
-        counts = Counter(f['severity'] for r in results for f in r['findings'])
-        st.bar_chart(pd.DataFrame({'Count': [counts.get(s, 0) for s in SEVERITY]}, index=SEVERITY))
+        selected_only = st.toggle('Selected household only', value=True)
+        counts = Counter(f['severity'] for r in ([case] if selected_only else results) for f in r['findings'])
+        distribution = pd.DataFrame({'Severity': SEVERITY, 'Count': [counts.get(s, 0) for s in SEVERITY]})
+        donut = alt.Chart(distribution).mark_arc(innerRadius=75, outerRadius=125).encode(
+            theta='Count:Q', color=alt.Color('Severity:N', scale=alt.Scale(domain=SEVERITY, range=COLORS)),
+            tooltip=['Severity', 'Count'])
+        st.altair_chart(donut.properties(height=320), width='stretch')
+        if not sum(counts.values()):
+            st.info('No findings for this scope.')
     st.caption('Values are descriptive for authorized households only. No inferences about a population.')
+    st.subheader('Data quality & source inconsistencies')
+    st.caption('Recomputed from CSV and transcript evidence. Original synthetic records are preserved.')
+    quality_codes = {'ACCOUNT_RECONCILIATION', 'MISSING_FEE', 'MISSING_RISK_PROFILE',
+                     'SUITABILITY_INCOMPLETE', 'FUTURE_LAST_MEETING', 'STALE_LAST_MEETING',
+                     'FUTURE_MEETING', 'FUTURE_VALUATION', 'ISIN_FORMAT'}
+    quality = [{**f, 'detail': r['household_id'] + ' · ' + f['detail']}
+               for r in results for f in r['findings'] if f['code'] in quality_codes]
+    render_findings(quality, key='quality_severity')
 
 with tab_household:
     st.subheader(f'Household {household_id}')
@@ -191,6 +244,31 @@ with tab_household:
                     st.code(safe_display(text, household), language='text')
 
 with tab_agent:
+    if local_enabled:
+        st.subheader('Local model evidence review')
+        st.caption('Gemma 2B + Decision 3.0 d3-edge (typed decisions). Scores are uncalibrated; generated text requires review.')
+        local_question = st.text_input('Question for Gemma', value='Explain the inconsistencies and priority checks for this household.')
+        if st.button('Run local decisions + Gemma', type='primary'):
+            from xy_agents.local_models import decide_sources, summarize
+            try:
+                with st.spinner('Running local models on authorized synthetic evidence…'):
+                    # Reauthorize immediately before extracting model inputs.
+                    _, _, scoped_meetings, scoped_transcripts = repo.scoped(principal, household_id, gateway)
+                    sources = [('meetings.csv:'+m['mote_id'], safe_display(m['anteckning'], household)) for m in scoped_meetings]
+                    sources += [(name, safe_display(text, household)) for name, text in scoped_transcripts]
+                    decisions = decide_sources(sources, decision_folder) if sources else []
+                    answer = summarize(case, decisions, local_question)
+                    st.session_state.local_result = (answer, decisions)
+            except Exception as exc:
+                st.session_state.local_result = None
+                st.error(f'Local inference unavailable ({type(exc).__name__}): {exc}')
+                st.info('See README local model setup. No generated answer has been substituted.')
+        if st.session_state.local_result:
+            answer, decisions = st.session_state.local_result
+            st.warning('Model-generated interpretation · verify against the Findings tab.')
+            st.markdown(answer)
+            st.dataframe(pd.DataFrame(decisions), width='stretch', hide_index=True)
+        st.divider()
     st.subheader('Ask the governed LangGraph agents')
     st.caption('Examples: “Explain fees and missing data”, “What is the risk-profile conflict?”, '
                '“Show transcript evidence”, “Summarize this portfolio”. '
@@ -244,6 +322,7 @@ with tab_audit:
     st.write('All report reads are checked against advisor permissions. The audit log below '
              'is **in-memory and session-local**: it is not production-grade durable logging.')
     events = pd.DataFrame(audit.events, columns=['Advisor', 'Household', 'Operation', 'Allowed'])
+    events = events[(events['Advisor'] == advisor_id) & events['Household'].isin(allowed)]
     st.dataframe(events.tail(150), hide_index=True, width='stretch')
     st.caption('Production requirements: verified login/SSO, DB row-level security, immutable audit trail, '
                'DLP/PII review, retention policy, vendor diligence and human-approved writes.')

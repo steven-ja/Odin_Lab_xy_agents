@@ -177,8 +177,17 @@ class CaseAnalyzer:
         for meeting in meetings:
             source_count += 1
             source = 'meetings.csv:'+meeting['mote_id']
+            if date.fromisoformat(meeting['datum']) > AS_OF:
+                flag('FUTURE_MEETING', 'high', 'Meeting is dated after the dataset as-of date', source)
             if INJECTION.search(meeting['anteckning']):
                 flag('PROMPT_INJECTION','critical','Untrusted CRM instruction quarantined',source)
+            elif LOWER_RISK.search(meeting['anteckning']):
+                flag('LOWER_RISK_EXPRESSED', 'high', 'Meeting note records a request to reduce risk; review profile', source)
+        if date.fromisoformat(household['senaste_mote']) > AS_OF:
+            flag('FUTURE_LAST_MEETING', 'high', 'Recorded last meeting is after the dataset as-of date', 'households.csv:'+household_id)
+        latest = max((m['datum'] for m in meetings if date.fromisoformat(m['datum']) <= AS_OF), default=None)
+        if latest and latest > household['senaste_mote']:
+            flag('STALE_LAST_MEETING', 'warning', f'Recorded last meeting {household["senaste_mote"]} precedes meeting {latest}', 'households.csv:'+household_id, 'meetings.csv:'+household_id)
         for filename, transcript in transcripts:
             source_count += 1
             risk_down = False
@@ -191,7 +200,7 @@ class CaseAnalyzer:
                 if INJECTION.search(text):
                     flag('PROMPT_INJECTION','critical','Untrusted transcript instruction quarantined',pointer)
                     continue  # Never extract risk intent from injected material.
-                if speaker == 'Kund' and LOWER_RISK.search(text):
+                if speaker == 'Kund' and LOWER_RISK.search(text) and not re.search(r'samma som förut', text, re.I):
                     risk_down = True
                     flag('LOWER_RISK_EXPRESSED','high','Client expressed caution / desire for lower risk',pointer)
                 if speaker == 'Rådgivare' and GUARANTEE.search(text):

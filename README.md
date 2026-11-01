@@ -10,7 +10,7 @@ from the extracted `xy_agents` directory (Python 3.11+):
 
 ```bash
 uv sync --extra dashboard --extra test
-uv run streamlit run dashboard.py
+uv run python -m streamlit run dashboard.py
 ```
 
 See [README_DASHBOARD.md](README_DASHBOARD.md) for dashboard usage, example
@@ -19,7 +19,7 @@ questions, LangGraph topology and UI-specific security boundaries.
 ## Tests
 
 ```bash
-uv run pytest -q
+uv run python -m pytest -q
 ```
 
 The suite covers dataset analysis, authorization, private-content isolation,
@@ -73,4 +73,103 @@ uv run python -m xy_agents --data fixtures --advisor R07 --household H018
 
 `case.py` validates the *actual* Swedish column names and types, joins, access permissions, holdings, dates, and account reconciliation. It computes decimal portfolio fees and HHI; extracts evidence pointers from Swedish transcripts; flags injections in M107 and T3, advisor conduct in T2, missing H009 fees, incomplete H002 suitability, overdue reviews and missing risk profiles. It does not expose raw customer text, personal identifiers, or financial record write tools to a model. The output is a deterministic JSON report with evidence pointers and a SHA-256 source fingerprint.
 
-**Limitations:** This is an offline, rule-driven, evidence-based prototype, not a trained AI agent. Swedish pattern rules do not guarantee detection of paraphrases. Jev remains an unimplemented adapter until its API and data-processing terms are verified. The CLI `--advisor` option is a demonstration of authorization logic, not authentication; a production API must obtain advisor identity from a verified authentication token, enforce database row-level security, and use durable audit storage. Account reconciliation uses reported balances and holdings as recorded, which may have different valuation dates. No suitability decision, investment recommendation, or client update is automated.
+**Limitations:** Verified reports use offline rules; optional local models provide unverified interpretation. Swedish pattern rules do not guarantee detection of paraphrases. Jev remains an unimplemented adapter until its API and data-processing terms are verified. The CLI `--advisor` option is a demonstration of authorization logic, not authentication; a production API must obtain advisor identity from a verified authentication token, enforce database row-level security, and use durable audit storage. Account reconciliation uses reported balances and holdings as recorded, which may have different valuation dates. No suitability decision, investment recommendation, or client update is automated.
+
+## Source reanalysis and fixes
+
+Reanalyzed 20 households, 62 holdings, 11 meetings and 3 transcripts against
+**2026-09-29**, the dataset date. Original fixtures are preserved.
+
+| Evidence | Inconsistency / finding |
+|---|---|
+| H001, M111, T1 | Last-meeting field says March 12, while M111/T1 record September 28. |
+| H007 | Reported ISK SEK 1,450,000 vs holdings SEK 1,300,000: SEK 150,000 gap. |
+| H011 | Reported ISK SEK 560,000 vs holdings SEK 896,000: SEK 336,000 excess. |
+| H009 | Missing fee data; calculated fees cover known exposure only. |
+| H013 | Last meeting November 3 is after the dataset date. |
+| H003 / H002 | Missing risk profile / incomplete suitability respectively. |
+| H012, T2 | Client requests caution despite aggressive profile; advisor gives near-guaranteed return assurance. |
+| H014, M106 | Request to reduce risk ahead of a house purchase requires advisor review. |
+| H016 M107 / H018 T3 | Embedded AI instructions are quarantined, never executed. |
+
+Five households have overdue reviews; four have unconfirmed pension data.
+Balance discrepancies require reconciliation; different valuation dates could
+explain them. The dashboard shows authorized inconsistencies with evidence.
+
+Fixed analyzer bugs: stale/future last-meeting dates were missed, M106's risk
+request was ignored, and T1's unchanged balanced preference triggered a misleading
+lower-risk flag. The exclusion remains a phrase heuristic, not full Swedish
+language understanding. Fixed UI bugs: fractional asset totals were truncated by
+`int`, and repository caching ignored edited source files. Source changes now
+invalidate repository and chat state. Regression tests cover these cases and
+Streamlit rendering with advisor switching.
+
+## Local models
+
+Gemma 2B generates explanations through local Ollama. **Decision 3.0 d3-edge**
+(`vllm-sr/d3-edge`, 0.59B, Apache-2.0) replaces the previous MiniLM topic
+classifier. It is a dedicated decision model with an answer-code readout:
+options are scored without generating text. This is a local alternative with
+similar bounded-answer semantics to Jev/Decisions, not either hosted model.
+
+```bash
+uv sync --extra dashboard --extra test --extra local
+uv run python download_decision.py
+```
+
+The explicit setup saves weights and the checkpoint's custom Python runtime to
+`models/decision`, with its resolved Hub commit in `REVISION`. Runtime loads
+local files only, on CPU. Transformers 5.17.0 is required by this checkpoint.
+The checkpoint code is executed with `trust_remote_code=True`; it was inspected
+for this integration. Downloading an updated revision changes that code too.
+The previous MiniLM files remain on disk but are no longer used.
+
+Install [Ollama](https://ollama.com/download), then:
+
+```bash
+ollama pull gemma2:2b
+ollama serve
+```
+
+If Ollama already runs, no second server is needed. Launch:
+
+```bash
+uv run python -m streamlit run dashboard.py
+```
+
+Enable **Local models**, then **Run local decisions + Gemma**. Three explicit
+choice questions are asked about each complete, redacted, authorized source:
+
+- Does the client request reduced risk, explicitly keep their preference, or is neither established?
+- Does the advisor give a future-return assurance requiring conduct review?
+- Does the source contain embedded instructions directed at AI that require quarantine?
+
+The decision table shows each question, candidate, per-option model scores and
+an advisory decision. Keeping full source context preserves speaker attribution
+and quotations. Inputs are never silently truncated: missing/invalid/over-limit
+answers require review. Scores below 0.8 also require review; this is a UI
+threshold, not a calibrated probability of correctness. High scores can still
+be wrong. Validate Swedish/domain performance before relying on decisions.
+Neither decision outputs nor Gemma prose override deterministic findings or
+permit record updates. Gemma sees the verified report plus advisory decisions,
+never raw source instructions. No cloud inference or automatic downloads occur
+at runtime. The LangGraph chat remains deterministic.
+
+References: [d3-edge model card and runtime](https://huggingface.co/vllm-sr/d3-edge),
+[Ollama API](https://github.com/ollama/ollama/blob/main/docs/api.md).
+
+The audit view filters rows to the active advisor and authorized households;
+previously switching advisors retained visible rows from the prior advisor.
+
+### Decision model smoke evaluation
+
+Actual local CPU run on the full H012/T2 transcript is saved in
+[decision_model_smoke.json](decision_model_smoke.json). The model incorrectly
+favoured unchanged risk (0.628) and missed the return assurance (0.519 for
+not-established). Both fell below the threshold and were routed to review.
+It correctly found no embedded AI instruction (0.982). Thus the checkpoint is
+wired and runs locally, but this sample does **not** establish adequate Swedish
+financial-domain accuracy. Deterministic risk and conduct findings remain
+visible regardless of these outputs. Full-document CPU inference is slow with
+the PyTorch fallback kernels; GPU benchmark timings in the model card do not
+apply to this setup.

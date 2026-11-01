@@ -1,0 +1,29 @@
+[
+  {
+    "source": "T2_H012_2026-09-24.txt",
+    "question": "risk_change",
+    "decision": "review_required",
+    "candidate": "unchanged",
+    "model_score": 0.6277743028683536,
+    "option_probabilities": "{\"review_profile\": 0.2621828039153129, \"unchanged\": 0.6277743028683536, \"not_established\": 0.11004289321633348}",
+    "status": "advisory"
+  },
+  {
+    "source": "T2_H012_2026-09-24.txt",
+    "question": "conduct",
+    "decision": "review_required",
+    "candidate": "not_established",
+    "model_score": 0.5191689884414967,
+    "option_probabilities": "{\"review_conduct\": 0.4808310115585033, \"not_established\": 0.5191689884414967}",
+    "status": "advisory"
+  },
+  {
+    "source": "T2_H012_2026-09-24.txt",
+    "question": "source_integrity",
+    "decision": "not_established",
+    "candidate": "not_established",
+    "model_score": 0.9819733566097406,
+    "option_probabilities": "{\"quarantine\": 0.01802664339025941, \"not_established\": 0.9819733566097406}",
+    "status": "advisory"
+  }
+]
